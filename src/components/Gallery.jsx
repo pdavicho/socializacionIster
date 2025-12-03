@@ -161,7 +161,7 @@ const Gallery = ({ onBack }) => {
     <div className="gallery-container">
       {/* Header simplificado */}
       <div className="gallery-header">
-        <h1 className="gallery-title">📸 Galería de la Feria</h1>
+        <h1 className="gallery-title">Investigación 2025</h1>
         <div className="header-right">
           <div className="photo-count">
             {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
