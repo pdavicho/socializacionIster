@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { storage, db } from '../firebase-config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -7,45 +7,6 @@ import './ArExperience.css';
 const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [capturedImage, setCapturedImage] = useState(null);
-  const [showCaptureOptions, setShowCaptureOptions] = useState(false);
-  const modelViewerRef = useRef(null);
-
-  // CAPTURAR FOTO DEL MODEL VIEWER
-  const captureFromModelViewer = async () => {
-    try {
-      const modelViewer = modelViewerRef.current;
-      if (!modelViewer) {
-        alert('Error: No se puede acceder al visor 3D');
-        return;
-      }
-
-      // Tomar screenshot del model viewer
-      const blob = await modelViewer.toBlob({
-        idealAspect: true,
-        mimeType: 'image/jpeg',
-        qualityArgument: 0.92
-      });
-
-      // Convertir blob a URL para preview
-      const imageUrl = URL.createObjectURL(blob);
-      setCapturedImage({ blob, url: imageUrl });
-      setShowCaptureOptions(true);
-
-    } catch (error) {
-      console.error('Error capturando imagen:', error);
-      alert('No se pudo capturar la imagen. Intenta de nuevo.');
-    }
-  };
-
-  // CANCELAR CAPTURA
-  const cancelCapture = () => {
-    if (capturedImage?.url) {
-      URL.revokeObjectURL(capturedImage.url);
-    }
-    setCapturedImage(null);
-    setShowCaptureOptions(false);
-  };
 
   // COMPRIMIR IMAGEN
   const compressImage = (file) => {
@@ -65,7 +26,7 @@ const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
           canvas.toBlob((blob) => {
-            resolve(new File([blob], file.name || 'photo.jpg', { 
+            resolve(new File([blob], file.name, { 
               type: 'image/jpeg',
               lastModified: Date.now()
             }));
@@ -93,67 +54,7 @@ const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
     return true;
   };
 
-  // SUBIR FOTO CAPTURADA
-  const uploadCapturedPhoto = async () => {
-    if (!capturedImage) return;
-
-    setUploading(true);
-    setUploadProgress(10);
-    setShowCaptureOptions(false);
-
-    try {
-      // Crear File desde Blob
-      const file = new File([capturedImage.blob], `capture_${Date.now()}.jpg`, {
-        type: 'image/jpeg'
-      });
-
-      setUploadProgress(25);
-
-      // Comprimir
-      const compressedFile = await compressImage(file);
-      setUploadProgress(50);
-
-      // Subir a Firebase
-      const fileName = `feria_${Date.now()}_${selectedAvatar.name.replace(/\s+/g, '_')}.jpg`;
-      const storageRef = ref(storage, `fotos_feria/${fileName}`);
-      
-      await uploadBytes(storageRef, compressedFile);
-      setUploadProgress(75);
-
-      // Obtener URL
-      const url = await getDownloadURL(storageRef);
-      setUploadProgress(90);
-
-      // Guardar en Firestore
-      await addDoc(collection(db, "galeria"), {
-        url: url,
-        avatar: selectedAvatar.name,
-        avatarFile: selectedAvatar.file,
-        createdAt: serverTimestamp(),
-        fileSize: compressedFile.size
-      });
-      
-      setUploadProgress(100);
-
-      // Limpiar
-      URL.revokeObjectURL(capturedImage.url);
-      setCapturedImage(null);
-      
-      setTimeout(() => {
-        alert("¡Foto guardada exitosamente! 🎉");
-        onGoToGallery();
-      }, 500);
-
-    } catch (error) {
-      console.error('Error al subir foto:', error);
-      alert("Error al subir la foto. Intenta de nuevo.");
-      setUploading(false);
-      setUploadProgress(0);
-      setShowCaptureOptions(true);
-    }
-  };
-
-  // SUBIR DESDE GALERÍA
+  // SUBIR FOTO
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -215,112 +116,113 @@ const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
         <h2 className="avatar-title-centered">{selectedAvatar.name}</h2>
       </div>
 
-      {/* MODEL VIEWER */}
+      {/* MODEL VIEWER - CONFIGURADO PARA AR */}
       <div className="model-viewer-wrapper">
         <model-viewer
-          ref={modelViewerRef}
           src={selectedAvatar.file} 
           alt={selectedAvatar.name}
           ar
-          ar-modes="webxr scene-viewer quick-look"
+          ar-modes="scene-viewer webxr quick-look"
+          ar-scale="auto"
           camera-controls
           shadow-intensity="1"
           auto-rotate
           rotation-per-second="30deg"
+          tone-mapping="neutral"
+          exposure="1"
+          environment-image="neutral"
           className="model-viewer"
+          ios-src=""
         >
+          {/* Botón AR personalizado */}
           <button slot="ar-button" className="ar-button">
-            📱 Ver en AR
+            📱 Abrir en AR y Tomar Foto
           </button>
           
           <div className="ar-help">
-            <p>👆 Arrastra para rotar</p>
+            <p>👆 Arrastra para rotar • 🔍 Pellizca para zoom</p>
           </div>
         </model-viewer>
-
-        {/* Botón de captura sobre el viewer */}
-        {!capturedImage && !uploading && (
-          <button 
-            className="capture-button"
-            onClick={captureFromModelViewer}
-          >
-            📷 Capturar Foto
-          </button>
-        )}
       </div>
 
-      {/* PREVIEW DE FOTO CAPTURADA */}
-      {capturedImage && showCaptureOptions && (
-        <div className="capture-preview">
-          <h3 className="preview-title">📸 Vista previa</h3>
-          <img 
-            src={capturedImage.url} 
-            alt="Preview" 
-            className="preview-image"
-          />
-          <div className="preview-actions">
-            <button 
-              className="preview-btn cancel"
-              onClick={cancelCapture}
-            >
-              ✕ Cancelar
-            </button>
-            <button 
-              className="preview-btn confirm"
-              onClick={uploadCapturedPhoto}
-            >
-              ✓ Subir Foto
-            </button>
-          </div>
+      {/* Instrucciones específicas */}
+      <div className="ar-instructions">
+        <div className="instruction-card android">
+          <h3>📱 Android - Instrucciones</h3>
+          <ol>
+            <li>Toca el botón "📱 Abrir en AR y Tomar Foto" arriba</li>
+            <li>Se abrirá Google Scene Viewer</li>
+            <li>Apunta tu cámara donde quieras colocar el avatar</li>
+            <li>Busca el <strong>botón de cámara ⚪</strong> en la parte inferior de la pantalla</li>
+            <li>Toca ese botón para capturar la foto</li>
+            <li>La foto se guardará automáticamente en tu galería</li>
+            <li>Regresa aquí y selecciónala para subirla</li>
+          </ol>
         </div>
-      )}
+
+        <div className="instruction-card ios">
+          <h3>🍎 iOS - Instrucciones</h3>
+          <ol>
+            <li>Toca el botón "📱 Abrir en AR y Tomar Foto" arriba</li>
+            <li>Se abrirá AR Quick Look</li>
+            <li>Posiciona el avatar en tu espacio</li>
+            <li>Toca el botón de captura ⚪ en la esquina</li>
+            <li>Regresa aquí y selecciona la foto</li>
+          </ol>
+        </div>
+      </div>
 
       {/* Sección de subida */}
-      {!capturedImage && (
-        <div className="upload-section">
-          <div className="upload-card">
-            <h3 className="upload-title">📤 Subir tu foto</h3>
-            
-            <div className="upload-options-info">
-              <p><strong>Opción 1:</strong> Usa el botón "📷 Capturar Foto" arriba para tomar una captura del modelo 3D</p>
-              <p><strong>Opción 2:</strong> Si ya tomaste una foto en AR, selecciónala de tu galería:</p>
-            </div>
+      <div className="upload-section">
+        <div className="upload-card">
+          <h3 className="upload-title">📤 ¿Ya tomaste tu foto en AR?</h3>
+          <p className="upload-description">
+            Selecciónala de tu galería para subirla
+          </p>
 
-            {uploading ? (
-              <div className="uploading-state">
-                <div className="spinner"></div>
-                <p className="uploading-text">Subiendo tu foto...</p>
-                
-                <div className="progress-bar-container">
-                  <div 
-                    className="progress-bar-fill" 
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                <p className="progress-text">{uploadProgress}%</p>
-              </div>
-            ) : (
-              <>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  id="galleryInput" 
-                  className="file-input-hidden"
-                  onChange={handleFileSelect}
+          {uploading ? (
+            <div className="uploading-state">
+              <div className="spinner"></div>
+              <p className="uploading-text">Subiendo tu foto...</p>
+              
+              <div className="progress-bar-container">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${uploadProgress}%` }}
                 />
-                
-                <button 
-                  onClick={() => document.getElementById('galleryInput').click()}
-                  className="upload-button gallery-btn-single"
-                >
-                  <span className="button-icon">🖼️</span>
-                  <span className="button-text">Seleccionar de galería</span>
-                </button>
-              </>
-            )}
-          </div>
+              </div>
+              <p className="progress-text">{uploadProgress}%</p>
+            </div>
+          ) : (
+            <>
+              <input 
+                type="file" 
+                accept="image/*"
+                id="galleryInput" 
+                className="file-input-hidden"
+                onChange={handleFileSelect}
+              />
+              
+              <button 
+                onClick={() => document.getElementById('galleryInput').click()}
+                className="upload-button gallery-btn-single"
+              >
+                <span className="button-icon">🖼️</span>
+                <span className="button-text">Seleccionar foto de galería</span>
+              </button>
+
+              <div className="upload-tip">
+                <p>💡 <strong>No encuentras el botón de cámara en AR?</strong></p>
+                <p>Algunos dispositivos Android no lo muestran. En ese caso, puedes:</p>
+                <ul>
+                  <li>Usar la captura de pantalla de tu teléfono</li>
+                  <li>O tomar una foto normal del avatar en la pantalla</li>
+                </ul>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
