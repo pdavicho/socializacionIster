@@ -64,7 +64,7 @@ const compressImage = (file) => {
           const y = canvas.height - logoHeight - margin;
           
           // Dibujar fondo semi-transparente para el logo
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.fillStyle = 'transparent';
           ctx.roundRect(x - 10, y - 10, logoWidth + 20, logoHeight + 20, 10);
           ctx.fill();
           
