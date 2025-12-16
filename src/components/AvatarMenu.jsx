@@ -43,7 +43,18 @@ export const avatars = [
     img: "/ruPapaNoel.png",  
     description: "¡Foto navideña especial!",
     color: "#dc2626",
-    isSpecial: true
+    isSpecial: true,
+    snowEffect: true  // NUEVO: activar efecto de nieve
+  },
+  { 
+    id: 6, 
+    name: "Papá Noel", 
+    file: "/papaNoel.glb", 
+    img: "/papaNoel.png",
+    description: "El verdadero Santa Claus",
+    color: "#b91c1c",
+    isSpecial: true,
+    snowEffect: true  // NUEVO: activar efecto de nieve
   },
 ];
 

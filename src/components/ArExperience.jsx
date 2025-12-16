@@ -26,74 +26,162 @@ const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // COMPRIMIR IMAGEN Y AGREGAR LOGO
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+  // COMPRIMIR IMAGEN, AGREGAR LOGO Y NIEVE (SOLO PAPÁ NOEL)
+const compressImage = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Configurar canvas con tamaño optimizado
+        const maxWidth = 1920;
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        // Dibujar imagen principal
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // ❄️ AGREGAR EFECTO DE NIEVE SOLO SI ES PAPÁ NOEL
+        if (selectedAvatar.snowEffect === true) {
+          drawSnowflakes(ctx, canvas.width, canvas.height);
+        }
+        
+        // Cargar y agregar logo
+        const logo = new Image();
+        logo.crossOrigin = "anonymous";
+        logo.onload = () => {
+          // Calcular tamaño del logo (15% del ancho de la imagen)
+          const logoWidth = canvas.width * 0.15;
+          const logoHeight = (logo.height / logo.width) * logoWidth;
           
-          // Configurar canvas con tamaño optimizado
-          const maxWidth = 1920;
-          const scale = Math.min(1, maxWidth / img.width);
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
+          // Posición: esquina inferior derecha con margen
+          const margin = canvas.width * 0.03;
+          const x = canvas.width - logoWidth - margin;
+          const y = canvas.height - logoHeight - margin;
           
-          // Dibujar imagen principal
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          // Dibujar fondo semi-transparente para el logo
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.roundRect(x - 10, y - 10, logoWidth + 20, logoHeight + 20, 10);
+          ctx.fill();
           
-          // Cargar y agregar logo
-          const logo = new Image();
-          logo.crossOrigin = "anonymous";
-          logo.onload = () => {
-            // Calcular tamaño del logo (15% del ancho de la imagen)
-            const logoWidth = canvas.width * 0.15;
-            const logoHeight = (logo.height / logo.width) * logoWidth;
-            
-            // Posición: esquina inferior derecha con margen
-            const margin = canvas.width * 0.03;
-            const x = canvas.width - logoWidth - margin;
-            const y = canvas.height - logoHeight - margin;
-            
-            // Dibujar fondo semi-transparente para el logo
-            //ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-            //ctx.roundRect(x - 10, y - 10, logoWidth + 20, logoHeight + 20, 10);
-            //ctx.fill();
-            //Cambio
-            
-            // Dibujar logo
-            ctx.drawImage(logo, x, y, logoWidth, logoHeight);
-            
-            // Convertir a blob
-            canvas.toBlob((blob) => {
-              resolve(new File([blob], file.name, { 
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              }));
-            }, 'image/jpeg', 0.85);
-          };
+          // Dibujar logo
+          ctx.drawImage(logo, x, y, logoWidth, logoHeight);
           
-          logo.onerror = () => {
-            // Si falla cargar el logo, continuar sin él
-            console.warn('No se pudo cargar el logo del instituto');
-            canvas.toBlob((blob) => {
-              resolve(new File([blob], file.name, { 
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              }));
-            }, 'image/jpeg', 0.85);
-          };
-          
-          // Cargar logo desde public
-          logo.src = '/logo-instituto.png';
+          // Convertir a blob
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name, { 
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            }));
+          }, 'image/jpeg', 0.90);
         };
-        img.src = e.target.result;
+        
+        logo.onerror = () => {
+          console.warn('No se pudo cargar el logo del instituto');
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name, { 
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            }));
+          }, 'image/jpeg', 0.90);
+        };
+        
+        logo.src = '/logo-instituto.png';
       };
-      reader.readAsDataURL(file);
-    });
-  };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// FUNCIÓN PARA DIBUJAR COPOS DE NIEVE
+const drawSnowflakes = (ctx, width, height) => {
+  const numFlakes = Math.floor((width * height) / 8000); // Densidad de nieve
+  
+  // Configurar sombra para los copos
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+  ctx.shadowBlur = 3;
+  
+  for (let i = 0; i < numFlakes; i++) {
+    // Posición aleatoria
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    
+    // Tamaño aleatorio (más variedad)
+    const size = Math.random() * 4 + 2; // Entre 2 y 6 píxeles
+    const opacity = Math.random() * 0.6 + 0.4; // Entre 0.4 y 1.0
+    
+    // Tipo de copo aleatorio
+    const flakeType = Math.floor(Math.random() * 3);
+    
+    if (flakeType === 0) {
+      // Copo circular simple
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (flakeType === 1) {
+      // Copo en forma de estrella
+      drawSnowflakeStar(ctx, x, y, size, opacity);
+    } else {
+      // Copo borroso
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+      gradient.addColorStop(0.5, `rgba(255, 255, 255, ${opacity * 0.5})`);
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  
+  // Limpiar sombra
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+};
+
+// FUNCIÓN PARA DIBUJAR COPO TIPO ESTRELLA
+const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
+  const spikes = 6;
+  const outerRadius = size;
+  const innerRadius = size * 0.5;
+  
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.random() * Math.PI); // Rotación aleatoria
+  
+  ctx.beginPath();
+  ctx.moveTo(0, 0 - outerRadius);
+  
+  for (let i = 0; i < spikes; i++) {
+    const angle = (Math.PI * 2 * i) / spikes - Math.PI / 2;
+    const nextAngle = (Math.PI * 2 * (i + 1)) / spikes - Math.PI / 2;
+    
+    // Punto exterior
+    ctx.lineTo(
+      Math.cos(angle) * outerRadius,
+      Math.sin(angle) * outerRadius
+    );
+    
+    // Punto interior
+    const midAngle = (angle + nextAngle) / 2;
+    ctx.lineTo(
+      Math.cos(midAngle) * innerRadius,
+      Math.sin(midAngle) * innerRadius
+    );
+  }
+  
+  ctx.closePath();
+  ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+  ctx.fill();
+  
+  ctx.restore();
+};
 
   // VALIDAR ARCHIVO
   const validateFile = (file) => {
