@@ -40,7 +40,7 @@ export const avatars = [
     id: 5, 
     name: "Rumi Navidad", 
     file: "/ruPapaNoel.glb", 
-    img: "/ruPapaNoel.png",  // ← Cambié .PNG a .png (minúsculas)
+    img: "/ruPapaNoel.png",  
     description: "¡Foto navideña especial!",
     color: "#dc2626",
     isSpecial: true
