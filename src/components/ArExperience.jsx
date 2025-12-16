@@ -61,6 +61,7 @@ const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
             //ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
             //ctx.roundRect(x - 10, y - 10, logoWidth + 20, logoHeight + 20, 10);
             //ctx.fill();
+            //Cambio
             
             // Dibujar logo
             ctx.drawImage(logo, x, y, logoWidth, logoHeight);
