@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { storage, db } from '../firebase-config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
 import './ArExperience.css';
 
 // Polyfill para roundRect (compatibilidad con navegadores antiguos)
@@ -24,6 +24,21 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 const ArExperience = ({ selectedAvatar, onGoToGallery, onBack }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [carpetas, setCarpetas] = useState([]);
+  const [selectedCarpeta, setSelectedCarpeta] = useState('');
+
+  // Cargar carpetas disponibles
+  useEffect(() => {
+    const q = query(collection(db, "carpetas"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setCarpetas(data);
+      if (data.length > 0 && !selectedCarpeta) {
+        setSelectedCarpeta(data[0].id);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // COMPRIMIR IMAGEN Y AGREGAR LOGO
   // COMPRIMIR IMAGEN, AGREGAR LOGO Y NIEVE (SOLO PAPÁ NOEL)
@@ -204,6 +219,12 @@ const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (!selectedCarpeta) {
+      alert("Selecciona una carpeta antes de subir la foto.");
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(10);
 
@@ -216,7 +237,7 @@ const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
 
       const fileName = `feria_${Date.now()}_${selectedAvatar.name.replace(/\s+/g, '_')}.jpg`;
       const storageRef = ref(storage, `fotos_feria/${fileName}`);
-      
+
       await uploadBytes(storageRef, compressedFile);
       setUploadProgress(75);
 
@@ -228,7 +249,8 @@ const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
         avatar: selectedAvatar.name,
         avatarFile: selectedAvatar.file,
         createdAt: serverTimestamp(),
-        fileSize: compressedFile.size
+        fileSize: compressedFile.size,
+        carpetaId: selectedCarpeta
       });
       
       setUploadProgress(100);
@@ -345,10 +367,10 @@ const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
             <div className="uploading-state">
               <div className="spinner"></div>
               <p className="uploading-text">Subiendo tu foto...</p>
-              
+
               <div className="progress-bar-container">
-                <div 
-                  className="progress-bar-fill" 
+                <div
+                  className="progress-bar-fill"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -356,20 +378,48 @@ const drawSnowflakeStar = (ctx, x, y, size, opacity) => {
             </div>
           ) : (
             <>
-              <input 
-                type="file" 
+              {/* Selector de carpeta */}
+              <div className="carpeta-selector">
+                <label className="carpeta-label" htmlFor="carpetaSelect">Carpeta destino:</label>
+                {carpetas.length === 0 ? (
+                  <p className="carpeta-warning">
+                    No hay carpetas disponibles. Un administrador debe crear una desde la galeria.
+                  </p>
+                ) : (
+                  <select
+                    id="carpetaSelect"
+                    className="carpeta-dropdown"
+                    value={selectedCarpeta}
+                    onChange={(e) => setSelectedCarpeta(e.target.value)}
+                  >
+                    {carpetas.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <input
+                type="file"
                 accept="image/*"
-                id="galleryInput" 
+                id="galleryInput"
                 className="file-input-hidden"
                 onChange={handleFileSelect}
               />
-              
-              <button 
-                onClick={() => document.getElementById('galleryInput').click()}
-                className="upload-button gallery-btn-single"
+
+              <button
+                onClick={() => {
+                  if (!selectedCarpeta) {
+                    alert("Selecciona una carpeta antes de subir la foto.");
+                    return;
+                  }
+                  document.getElementById('galleryInput').click();
+                }}
+                className={`upload-button gallery-btn-single ${!selectedCarpeta ? 'btn-disabled' : ''}`}
+                disabled={!selectedCarpeta}
               >
                 <span className="button-icon">🖼️</span>
-                <span className="button-text">Seleccionar foto de galería</span>
+                <span className="button-text">Seleccionar foto de galeria</span>
               </button>
 
               <div className="upload-tip">

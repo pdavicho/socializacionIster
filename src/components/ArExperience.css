@@ -241,6 +241,57 @@
 }
 
 /* ============================================
+   CARPETA SELECTOR
+   ============================================ */
+.carpeta-selector {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.carpeta-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.carpeta-dropdown {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: #2d3748;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  appearance: auto;
+}
+
+.carpeta-dropdown:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.carpeta-warning {
+  font-size: 0.85rem;
+  color: #c53030;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* ============================================
    UPLOADING STATE
    ============================================ */
 .uploading-state {
